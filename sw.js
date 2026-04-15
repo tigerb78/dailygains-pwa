@@ -1,11 +1,12 @@
 const CACHE_NAME = 'dailygains-v1';
+const BASE = '/dailygains-pwa';
 const ASSETS = [
-  '/',
-  '/dagelijkse-workout.html',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png',
-  '/icons/apple-touch-icon.png'
+  BASE + '/',
+  BASE + '/dagelijkse-workout.html',
+  BASE + '/manifest.json',
+  BASE + '/icons/icon-192.png',
+  BASE + '/icons/icon-512.png',
+  BASE + '/icons/apple-touch-icon.png'
 ];
 
 self.addEventListener('install', e => {
@@ -28,7 +29,7 @@ self.addEventListener('fetch', e => {
   e.respondWith(
     caches.match(e.request).then(cached => {
       if (cached) return cached;
-      return fetch(e.request).catch(() => caches.match('/dagelijkse-workout.html'));
+      return fetch(e.request).catch(() => caches.match(BASE + '/dagelijkse-workout.html'));
     })
   );
 });
