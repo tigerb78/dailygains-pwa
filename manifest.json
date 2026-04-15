@@ -1,0 +1,31 @@
+{
+  "name": "DailyGains – Thomas",
+  "short_name": "DailyGains",
+  "description": "3× per dag workout tracker voor kracht en vetverbranding",
+  "start_url": "/dagelijkse-workout.html",
+  "display": "standalone",
+  "background_color": "#0f0f0d",
+  "theme_color": "#3a9ea8",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icons/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["health", "fitness", "lifestyle"],
+  "lang": "nl"
+}
