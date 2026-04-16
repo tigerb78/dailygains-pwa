@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dailygains-v2';
+const CACHE_NAME = 'dailygains-v3';
 const BASE = '/dailygains-pwa';
 const ASSETS = [
   BASE + '/',
@@ -25,11 +25,18 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// Network-first: try fresh version, fall back to cache for offline use
 self.addEventListener('fetch', e => {
   e.respondWith(
-    caches.match(e.request).then(cached => {
-      if (cached) return cached;
-      return fetch(e.request).catch(() => caches.match(BASE + '/dagelijkse-workout.html'));
-    })
+    fetch(e.request)
+      .then(response => {
+        // Update cache with fresh response
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(e.request)
+        .then(cached => cached || caches.match(BASE + '/dagelijkse-workout.html'))
+      )
   );
 });
