@@ -1096,13 +1096,106 @@
     '2-0': 3, '2-1': 2, '2-2': 2, '2-3': 3
   };
 
-  // Load from memory variable (no localStorage)
+  const STORAGE_KEY = 'dailygains_state';
+  const HISTORY_KEY = 'dailygains_history';
+
+  function todayStr() {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  function saveState() {
+    const toSave = {
+      date: todayStr(),
+      sessions: state.sessions,
+      sets: state.sets,
+      exercises: state.exercises,
+      notes: state.notes,
+      streak: state.streak,
+      totalSessions: state.totalSessions,
+      lastDate: state.lastDate
+    };
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(toSave)); } catch(e) {}
+  }
+
+  function saveHistory() {
+    // Save completed day to history for streak calculation
+    try {
+      const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}');
+      history[todayStr()] = {
+        sessions: [...state.sessions],
+        totalSets: getDoneSets(),
+        streak: state.streak
+      };
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+    } catch(e) {}
+  }
+
+  function calcStreak() {
+    try {
+      const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}');
+      let streak = 0;
+      const d = new Date();
+      // Check if today is fully done, if so count it
+      if (state.sessions.every(Boolean)) {
+        streak = 1;
+        d.setDate(d.getDate() - 1);
+      }
+      // Count consecutive past days
+      while (true) {
+        const key = d.toISOString().split('T')[0];
+        const day = history[key];
+        if (day && day.sessions && day.sessions.every(Boolean)) {
+          streak++;
+          d.setDate(d.getDate() - 1);
+        } else {
+          break;
+        }
+      }
+      return streak;
+    } catch(e) { return 0; }
+  }
+
   function initState() {
-    // Initialize sets/exercises
+    // Try to load saved state
+    try {
+      const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
+      if (saved && saved.date === todayStr()) {
+        // Same day — restore everything
+        state.sessions = saved.sessions || [false, false, false];
+        state.sets = saved.sets || {};
+        state.exercises = saved.exercises || {};
+        state.notes = saved.notes || ['', '', ''];
+        state.totalSessions = saved.totalSessions || 0;
+        state.lastDate = saved.lastDate;
+        state.streak = calcStreak();
+        // Fill in any missing set keys
+        Object.keys(setConfig).forEach(k => {
+          if (!state.sets[k]) state.sets[k] = Array(setConfig[k]).fill(false);
+          if (state.exercises[k] === undefined) state.exercises[k] = false;
+        });
+        return;
+      } else if (saved && saved.date !== todayStr()) {
+        // New day — save yesterday to history first, then reset
+        try {
+          const history = JSON.parse(localStorage.getItem(HISTORY_KEY) || '{}');
+          history[saved.date] = {
+            sessions: saved.sessions || [false, false, false],
+            totalSets: Object.entries(saved.sets || {}).reduce((t, [k, arr]) => t + arr.filter(Boolean).length, 0)
+          };
+          localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+        } catch(e) {}
+        // Keep cumulative stats
+        state.totalSessions = saved.totalSessions || 0;
+        state.lastDate = saved.date;
+      }
+    } catch(e) {}
+    // Fresh day or first use — initialize sets/exercises
     Object.keys(setConfig).forEach(k => {
       state.sets[k] = Array(setConfig[k]).fill(false);
       state.exercises[k] = false;
     });
+    state.streak = calcStreak();
+    saveState();
   }
 
   function getTotalSets() {
@@ -1164,6 +1257,7 @@
       state.exercises[exKey] = false;
       document.getElementById('ex-' + exKey).classList.remove('completed');
     }
+    saveState();
     updateStats();
   };
 
@@ -1179,6 +1273,7 @@
       const btn = document.getElementById('set-' + exKey + '-' + i);
       if (btn) btn.classList.toggle('done', newVal);
     }
+    saveState();
     updateStats();
   };
 
@@ -1187,6 +1282,9 @@
     state.sessions[idx] = true;
     state.totalSessions++;
     state.notes[idx] = document.getElementById('note-' + idx).value;
+    state.streak = calcStreak();
+    saveState();
+    saveHistory();
 
     const btn = document.getElementById('complete-' + idx);
     btn.classList.add('done');
@@ -1253,6 +1351,7 @@
       document.getElementById('note-' + i).value = '';
     }
     switchTab(0);
+    saveState();
     updateStats();
   };
 
@@ -1274,6 +1373,29 @@
 
   // ===== INIT =====
   initState();
+  // Restore UI from saved state
+  Object.keys(setConfig).forEach(k => {
+    for (let i = 0; i < setConfig[k]; i++) {
+      const btn = document.getElementById('set-' + k + '-' + i);
+      if (btn && state.sets[k] && state.sets[k][i]) btn.classList.add('done');
+    }
+    if (state.exercises[k]) {
+      const ex = document.getElementById('ex-' + k);
+      if (ex) ex.classList.add('completed');
+    }
+  });
+  for (let i = 0; i < 3; i++) {
+    if (state.sessions[i]) {
+      const btn = document.getElementById('complete-' + i);
+      if (btn) { btn.classList.add('done'); btn.textContent = '\u2705 Sessie afgerond!'; }
+      const tab = document.getElementById('tab-' + i);
+      if (tab) tab.classList.add('done-tab');
+    }
+    if (state.notes[i]) {
+      const note = document.getElementById('note-' + i);
+      if (note) note.value = state.notes[i];
+    }
+  }
   updateStats();
 })();
 </script>

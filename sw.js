@@ -1,4 +1,4 @@
-const CACHE_NAME = 'dailygains-v1';
+const CACHE_NAME = 'dailygains-v2';
 const BASE = '/dailygains-pwa';
 const ASSETS = [
   BASE + '/',
